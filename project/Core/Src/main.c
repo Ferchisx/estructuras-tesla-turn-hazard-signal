@@ -43,7 +43,10 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint32_t left_toggles = 0;
+uint8_t left = 0;
+uint8_t right = 0;
+uint8_t left_2 = 0;
+uint8_t right_2 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,8 +62,14 @@ static void MX_USART2_UART_Init(void);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	if(GPIO_Pin==S1_Pin){
-		HAL_UART_Transmit(&huart2,"S1\r\n",4,10);
-		left_toggles = 6;
+		left = 1;
+	}
+	if(GPIO_Pin==S2_Pin){
+		right = 1;
+	}
+	if(GPIO_Pin==S3_Pin){
+		left_2 = 1;
+		right_2 = 1;
 	}
 }
 
@@ -71,19 +80,10 @@ void heartbeat(void){
 		HAL_GPIO_TogglePin(D1_GPIO_Port,D1_Pin);
 	}
 }
-
-void turn_signal_left(void){
-	static uint32_t turn_toggle_tick=0;
-	if(turn_toggle_tick<HAL_GetTick() && left_toggles>0){
-		turn_toggle_tick=HAL_GetTick()+500;
-		HAL_GPIO_TogglePin(D3_GPIO_Port,D3_Pin);
-		left_toggles--;
-	}
-}
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entxºxry point.
+  * @brief  The application entry point.
   * @retval int
   */
 int main(void)
@@ -120,11 +120,48 @@ int main(void)
   while (1)
   {
 	  heartbeat();
-	  turn_signal_left();
+	  if(left != 0){
+		  HAL_UART_Transmit(&huart2,"Left signal\r\n",13,10);
+		  for(uint8_t i = 0; i<6; i++){
+			  if(right == 0){
+				  HAL_GPIO_TogglePin(D2_GPIO_Port, D2_Pin);
+				  HAL_Delay(500);
+			  }
+		  }
+		  HAL_GPIO_WritePin(D2_GPIO_Port, D2_Pin, 1);
+		  left = 0;
+	  }
+
+	  if(right != 0){
+		  HAL_UART_Transmit(&huart2,"Right Signal\r\n",14,10);
+		  for(uint8_t i = 0; i<6; i++){
+			  if(left == 0){
+				  HAL_GPIO_TogglePin(D3_GPIO_Port, D3_Pin);
+				  HAL_Delay(500);
+			  }
+		  }
+		  HAL_GPIO_WritePin(D3_GPIO_Port, D3_Pin, 1);
+		  right = 0;
+	  }
+
+	  if(right_2!=0 && left_2!=0){
+		  HAL_UART_Transmit(&huart2,"Stationary signal\r\n",19,10);
+		  for(uint8_t i = 0; i<6; i++){
+			  if(left == 0 || right==0){
+				  HAL_GPIO_TogglePin(D3_GPIO_Port, D3_Pin);
+				  HAL_GPIO_TogglePin(D4_GPIO_Port, D4_Pin);
+				  HAL_Delay(500);
+			  }
+		  }
+		  HAL_GPIO_WritePin(D3_GPIO_Port, D3_Pin, 1);
+		  HAL_GPIO_WritePin(D4_GPIO_Port, D4_Pin, 1);
+		  left_2 = 0;
+		  right_2 = 0;
+	  }
+  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
   /* USER CODE END 3 */
 }
 
@@ -229,7 +266,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, D1_Pin|D3_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, D1_Pin|D2_Pin|D3_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(D4_GPIO_Port, D4_Pin, GPIO_PIN_SET);
@@ -240,8 +277,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : D1_Pin D3_Pin */
-  GPIO_InitStruct.Pin = D1_Pin|D3_Pin;
+  /*Configure GPIO pins : D1_Pin D2_Pin D3_Pin */
+  GPIO_InitStruct.Pin = D1_Pin|D2_Pin|D3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
