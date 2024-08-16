@@ -72,8 +72,6 @@ void Error_Handler(void);
 #define S3_Pin GPIO_PIN_0
 #define S3_GPIO_Port GPIOB
 #define S3_EXTI_IRQn EXTI0_IRQn
-#define D4_Pin GPIO_PIN_6
-#define D4_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

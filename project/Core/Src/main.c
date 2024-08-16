@@ -47,6 +47,9 @@ uint8_t left = 0;
 uint8_t right = 0;
 uint8_t left_2 = 0;
 uint8_t right_2 = 0;
+uint8_t left_pressed = 0;
+uint8_t right_pressed = 0;
+uint32_t blinks = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -117,12 +120,19 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t S1_pressed = 0;
+  uint8_t S2_pressed = 0;
   while (1)
   {
 	  heartbeat();
 	  if(left != 0){
+		  blinks = 6;
+		  if (HAL_GetTick() - S1_pressed < 300){
+			  blinks = 0xFFFFFFFF;
+		  }
+		  S1_pressed = HAL_GetTick();
 		  HAL_UART_Transmit(&huart2,"Left signal\r\n",13,10);
-		  for(uint8_t i = 0; i<6; i++){
+		  for(uint32_t i = 0; i<blinks; i++){
 			  if(right == 0){
 				  HAL_GPIO_TogglePin(D2_GPIO_Port, D2_Pin);
 				  HAL_Delay(500);
@@ -130,11 +140,17 @@ int main(void)
 		  }
 		  HAL_GPIO_WritePin(D2_GPIO_Port, D2_Pin, 1);
 		  left = 0;
+		  blinks = 0;
 	  }
 
 	  if(right != 0){
+		  blinks = 6;
+		  if (HAL_GetTick() - S2_pressed < 300){
+			  blinks = 0xFFFFFFFF;
+		  }
+		  S2_pressed = HAL_GetTick();
 		  HAL_UART_Transmit(&huart2,"Right Signal\r\n",14,10);
-		  for(uint8_t i = 0; i<6; i++){
+		  for(uint32_t i = 0; i<blinks; i++){
 			  if(left == 0){
 				  HAL_GPIO_TogglePin(D3_GPIO_Port, D3_Pin);
 				  HAL_Delay(500);
@@ -142,19 +158,20 @@ int main(void)
 		  }
 		  HAL_GPIO_WritePin(D3_GPIO_Port, D3_Pin, 1);
 		  right = 0;
+		  blinks = 0;
 	  }
 
 	  if(right_2!=0 && left_2!=0){
 		  HAL_UART_Transmit(&huart2,"Stationary signal\r\n",19,10);
 		  for(uint8_t i = 0; i<6; i++){
 			  if(left == 0 || right==0){
+				  HAL_GPIO_TogglePin(D2_GPIO_Port, D2_Pin);
 				  HAL_GPIO_TogglePin(D3_GPIO_Port, D3_Pin);
-				  HAL_GPIO_TogglePin(D4_GPIO_Port, D4_Pin);
 				  HAL_Delay(500);
 			  }
 		  }
+		  HAL_GPIO_WritePin(D2_GPIO_Port, D2_Pin, 1);
 		  HAL_GPIO_WritePin(D3_GPIO_Port, D3_Pin, 1);
-		  HAL_GPIO_WritePin(D4_GPIO_Port, D4_Pin, 1);
 		  left_2 = 0;
 		  right_2 = 0;
 	  }
@@ -268,9 +285,6 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, D1_Pin|D2_Pin|D3_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(D4_GPIO_Port, D4_Pin, GPIO_PIN_SET);
-
   /*Configure GPIO pins : S1_Pin S2_Pin */
   GPIO_InitStruct.Pin = S1_Pin|S2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -289,13 +303,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(S3_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : D4_Pin */
-  GPIO_InitStruct.Pin = D4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(D4_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
